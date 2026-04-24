@@ -87,22 +87,33 @@ def ingest_threads(
         logger.exception("Failed to chunk threads")
         raise HTTPException(status_code=500, detail=f"Error chunking threads: {type(exc).__name__}: {exc}") from exc
 
-    # --- Step 3: embed ---
-    texts = [c["text"] for c in chunks]
+    # --- Steps 3+4: embed and store in batches of 500 ---
+    # Avoids holding all embeddings in memory and keeps each ChromaDB
+    # upsert well under its 5461-item hard limit.
+    BATCH = 500
+    stored = 0
     try:
-        embeddings = embed_texts(texts)
-        logger.info("Embedding complete | %d vectors", len(embeddings))
-    except Exception as exc:
-        logger.exception("Failed to embed chunks")
-        raise HTTPException(status_code=500, detail=f"Error calling embedding API: {type(exc).__name__}: {exc}") from exc
-
-    # --- Step 4: store ---
-    try:
-        stored = add_chunks(chunks, embeddings)
-        logger.info("Storage complete | %d chunks stored", stored)
-    except Exception as exc:
-        logger.exception("Failed to store chunks in ChromaDB")
-        raise HTTPException(status_code=500, detail=f"Error writing to ChromaDB: {type(exc).__name__}: {exc}") from exc
+        for i in range(0, len(chunks), BATCH):
+            batch = chunks[i:i + BATCH]
+            try:
+                embeddings = embed_texts([c["text"] for c in batch])
+            except Exception as exc:
+                logger.exception("Failed to embed batch %d-%d", i, i + len(batch))
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Embedding API error on batch {i}-{i+len(batch)}: {type(exc).__name__}: {exc}",
+                ) from exc
+            try:
+                stored += add_chunks(batch, embeddings)
+            except Exception as exc:
+                logger.exception("Failed to store batch %d-%d in ChromaDB", i, i + len(batch))
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"ChromaDB error on batch {i}-{i+len(batch)}: {type(exc).__name__}: {exc}",
+                ) from exc
+            logger.info("Stored %d/%d chunks", stored, len(chunks))
+    except HTTPException:
+        raise
 
     return {
         "threads_built": len(threads),

@@ -33,7 +33,7 @@ def get_collection():
 
 # Purpose: Store chunks with their embeddings. Upsert so re-ingesting
 # updates rather than duplicates.
-CHROMA_BATCH_SIZE = 5000
+CHROMA_BATCH_SIZE = 500
 
 def add_chunks(chunks: list[dict], embeddings: list[list[float]]) -> int:
     """Store chunks with their embeddings in ChromaDB.
