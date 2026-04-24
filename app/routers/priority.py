@@ -10,6 +10,8 @@ import json
 import logging
 import re
 
+import traceback
+
 from fastapi import APIRouter, HTTPException
 
 from app.models import TicketRequest, PriorityMLResponse, PriorityLLMResponse
@@ -36,10 +38,14 @@ def predict_ml(request: TicketRequest):
 @router.post("/llm", response_model=PriorityLLMResponse)
 def predict_llm(request: TicketRequest):
     """Predict ticket urgency using Gemini 2.5 Flash zero-shot classification."""
-    stats = call_llm_with_stats(
-        user_prompt=request.text,
-        system_prompt=PRIORITY_SYSTEM_PROMPT,
-    )
+    try:
+        stats = call_llm_with_stats(
+            user_prompt=request.text,
+            system_prompt=PRIORITY_SYSTEM_PROMPT,
+        )
+    except Exception as exc:
+        logger.error("LLM priority call failed: %s\n%s", exc, traceback.format_exc())
+        raise HTTPException(status_code=502, detail=f"LLM call failed: {exc}") from exc
 
     parsed = _parse_priority_response(stats["text"])
 
