@@ -1,0 +1,110 @@
+# ============================================================
+# Decision Intelligence Assistant — Docker Compose stack
+# ============================================================
+#
+# Services
+# --------
+# backend   FastAPI service (RAG, LLM, ML endpoints)
+# frontend  React app served by nginx; proxies /ask /priority
+#           /store /search /ingest /health to the backend
+#
+# Vector store
+# ------------
+# ChromaDB runs inside the backend process using PersistentClient.
+# There is no separate vector-db service because:
+#   - PersistentClient writes a SQLite + HNSW index to a local path.
+#   - For a single-node deployment this avoids a network hop on every
+#     embed/search call and removes an extra failure point.
+#   - Data durability is handled by the named volume chroma-data, which
+#     survives container restarts and rebuilds.
+# If you later need multi-node or remote access, swap PersistentClient
+# for chromadb.HttpClient and add a separate chromadb service here.
+#
+# Usage
+# -----
+#   cp .env.example .env        # fill in GEMINI_API_KEY (only required var)
+#   docker compose up --build   # first run builds both images
+#   docker compose up           # subsequent runs reuse cached images
+#   docker compose down         # stop and remove containers (volumes kept)
+#   docker compose down -v      # also delete volumes (wipes the vector store)
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # backend — FastAPI (uvicorn)
+  # Dockerfile: ./Dockerfile (root, because app/ is the package)
+  # ----------------------------------------------------------
+  backend:
+    build:
+      # Build context is the project root so the Dockerfile can COPY app/.
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      # These override whatever is in .env so paths resolve correctly
+      # inside the container regardless of host paths.
+      CHROMA_PATH: /data/chroma
+      LOGS_DIR: /data/logs
+      TWCS_PARQUET_PATH: /data/dataset/processed/twcs_raw.parquet
+      # CORS: allow the nginx frontend (on port 8080 from the host) and
+      # the internal network name so browser requests through nginx work.
+      CORS_ORIGINS: "http://localhost:8080,http://frontend"
+    volumes:
+      # Named volume — persists the ChromaDB index across restarts.
+      - chroma-data:/data/chroma
+      # Named volume — persists query logs across restarts.
+      - logs:/data/logs
+      # Bind mounts (read-only) — data that lives on the host, never
+      # copied into the image because the parquet is ~500 MB.
+      - ./dataset:/data/dataset:ro
+      - ./models:/backend/models:ro
+    networks:
+      - dia-network
+    # Port 8000 is only exposed to the host for direct API testing.
+    # The frontend talks to the backend over the internal Docker network.
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # ----------------------------------------------------------
+  # frontend — React (Vite build) served by nginx
+  # Dockerfile: ./frontend/Dockerfile
+  # ----------------------------------------------------------
+  frontend:
+    build:
+      # Context is the frontend directory so COPY . . gets only
+      # the React source, not the entire monorepo.
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - dia-network
+
+# ----------------------------------------------------------
+# Networks
+# ----------------------------------------------------------
+# A single user-defined bridge network so services can reach
+# each other by name (frontend → backend, not by IP or localhost).
+# Docker's default bridge network does not support DNS by name.
+networks:
+  dia-network:
+    driver: bridge
+
+# ----------------------------------------------------------
+# Volumes
+# ----------------------------------------------------------
+# Named volumes are managed by Docker and survive container
+# removal. Deleting them requires an explicit `docker compose down -v`.
+volumes:
+  chroma-data:
+  logs:

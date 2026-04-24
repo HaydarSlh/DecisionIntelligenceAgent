@@ -1,0 +1,28 @@
+.claude
+.venv
+.env
+
+# Large data directories
+dataset/
+chroma_data/
+logs/
+
+# Model binaries (large files)
+*.bin
+*.pt
+*.pth
+*.onnx
+*.pkl
+*.joblib
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/

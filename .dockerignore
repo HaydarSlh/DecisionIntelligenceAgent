@@ -1,0 +1,32 @@
+# Exclude everything that shouldn't go into the backend build context.
+# Docker sends the entire context directory to the daemon before building.
+# Without this file, the 500 MB parquet and the venv would be sent on
+# every build, making it slow and inflating the image.
+
+# Virtual environment
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Large data files — mounted as volumes at runtime
+dataset/
+chroma_data/
+logs/
+
+# Jupyter notebooks and reports — not needed inside the container
+notebooks/
+reports/
+
+# Secrets — never bake these into an image
+.env
+
+# Frontend — built by its own service; not part of the backend image
+frontend/
+
+# Git and editor noise
+.git/
+.gitignore
+*.md

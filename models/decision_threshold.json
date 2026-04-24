@@ -1,0 +1,4 @@
+{
+  "threshold": 0.9927806066547021,
+  "operating_point": "recall>=0.75 at precision>=0.60"
+}

@@ -1,0 +1,32 @@
+# Backend runtime — FastAPI service
+# Separate from requirements.txt (notebook/ML work) so the Docker image
+# only installs what the server actually needs at request time.
+
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# Vector store (in-process persistent mode — no separate service needed)
+chromadb==0.5.23
+
+# LLM / embedding provider
+google-genai==1.5.0
+openai==1.57.0          # kept for optional OpenAI / Azure provider
+
+# Data
+pandas==2.2.3
+pyarrow==18.1.0
+numpy==2.1.3
+
+# ML inference (model loaded from models/priority_model.joblib)
+scikit-learn==1.5.2
+lightgbm==4.5.0
+joblib==1.4.2
+scipy==1.14.1
+
+# NLP
+vaderSentiment==3.3.2
+nltk==3.9.1
+
+# Config
+python-dotenv==1.0.1
