@@ -458,6 +458,10 @@ body {
   color: var(--urgent); padding: .9rem 1.2rem; font-size: .88rem;
   display: flex; align-items: center; gap: .6rem;
 }
+.error-banner--warn {
+  background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3);
+  border-left-color: #f59e0b; color: #f59e0b;
+}
 
 /* ============================================================
    Recharts overrides

@@ -8,7 +8,7 @@
 import time
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.config import RAG_TOP_K
 from app.models import TicketRequest, PlainAnswerResponse, RAGAnswerResponse, RetrievedTicket
@@ -26,10 +26,14 @@ router = APIRouter(prefix="/ask", tags=["Q&A"])
 @router.post("", response_model=PlainAnswerResponse)
 def ask_plain(request: TicketRequest):
     """Answer a support question using only the LLM's general knowledge."""
-    stats = call_llm_with_stats(
-        user_prompt=request.text,
-        system_prompt=PLAIN_SYSTEM_PROMPT,
-    )
+    try:
+        stats = call_llm_with_stats(
+            user_prompt=request.text,
+            system_prompt=PLAIN_SYSTEM_PROMPT,
+        )
+    except Exception as exc:
+        logger.error("LLM plain call failed: %s", exc)
+        raise HTTPException(status_code=503, detail=f"LLM unavailable: {exc}") from exc
     log_query("ask_plain", {
         "query": request.text,
         "answer": stats["text"],

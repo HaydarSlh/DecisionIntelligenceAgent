@@ -24,7 +24,7 @@ RUN apt-get update \
 # Docker caches this layer as long as the file doesn't change,
 # so code edits won't trigger a full pip reinstall.
 COPY requirements-backend.txt .
-RUN pip install --no-cache-dir -r requirements-backend.txt
+RUN uv install --no-cache-dir -r requirements-backend.txt
 
 # Download the two NLTK corpora that vaderSentiment and the feature
 # extractor need. Doing this at build time means the container starts

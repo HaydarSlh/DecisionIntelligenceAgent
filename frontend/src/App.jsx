@@ -40,6 +40,7 @@ export default function App() {
     try {
       const data = await runQuery(text, brand)
       setResults(data)
+      setError(data.errors?.length ? `Some predictions failed: ${data.errors.join(' | ')}` : null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -71,8 +72,8 @@ export default function App() {
         <QueryForm onSubmit={handleSubmit} loading={loading} mode={mode} />
 
         {error && (
-          <div className="error-banner">
-            <span>⚠</span> <strong>Error:</strong>&ensp;{error}
+          <div className={`error-banner ${results ? 'error-banner--warn' : ''}`}>
+            <span>⚠</span> <strong>{results ? 'Warning' : 'Error'}:</strong>&ensp;{error}
           </div>
         )}
 

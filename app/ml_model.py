@@ -72,10 +72,11 @@ def predict_priority(text: str) -> dict:
 
     proba = float(pipe.predict_proba(df)[0][1])  # P(urgent)
     label = "urgent" if proba >= threshold else "normal"
+    confidence = round(proba if label == "urgent" else 1.0 - proba, 4)
 
     return {
         "label": label,
-        "confidence": round(proba, 4),
+        "confidence": confidence,
         "latency_ms": round((time.perf_counter() - t0) * 1000, 2),
         "model_available": True,
     }

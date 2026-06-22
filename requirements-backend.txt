@@ -11,7 +11,6 @@ chromadb==0.5.23
 
 # LLM / embedding provider
 google-genai==1.5.0
-openai==1.57.0          # kept for optional OpenAI / Azure provider
 
 # Data
 pandas==2.2.3
